@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, escape
 from vsearch import search4letters # importing search4letters
-from DBcm import UseDatabase, ConnectionError
+from DBcm import UseDatabase, ConnectionError, CredentialsError, SQLError
+
 
 app = Flask(__name__)
 
@@ -66,6 +67,10 @@ def view_the_log() -> 'html': #view log function
         titles = ( 'Phrase', 'Letters', 'Remote_addr', 'User_agent', 'Results')
     except ConnectionError as err:
         print('Is your database switched on? Error:', str(err))
+    except CredentialsError as err:
+        print('User-id/Password issues. Error:', str(err))
+    except SQLError as err:
+        print('Is your query correct? Error:', str(err))
     
     return render_template('viewlog.html',
                            the_title='View Log',
