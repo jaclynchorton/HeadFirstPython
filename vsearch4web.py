@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, escape
 from vsearch import search4letters # importing search4letters
-from DBcm import UseDatabase
+from DBcm import UseDatabase, ConnectionError
 
 app = Flask(__name__)
 
@@ -57,12 +57,15 @@ def entry_page() -> 'html':
 @app.route('/viewlog')  #viewlog page decorator
 def view_the_log() -> 'html': #view log function
     """Display the contents of the log file as a HTML table."""
-    with UseDatabase(app.config['dbconfig']) as cursor:
-        _SQL = """select phrase, letters, ip, browser_string, results
-                    from log"""
-        cursor.execute(_SQL)
-        contents = cursor.fetchall() #Send the query to the server, then fetch the reults. Note assignment of the fetched data to "contents."
-    titles = ( 'Phrase', 'Letters', 'Remote_addr', 'User_agent', 'Results')
+    try:
+        with UseDatabase(app.config['dbconfig']) as cursor:
+            _SQL = """select phrase, letters, ip, browser_string, results
+                        from log"""
+            cursor.execute(_SQL)
+            contents = cursor.fetchall() #Send the query to the server, then fetch the reults. Note assignment of the fetched data to "contents."
+        titles = ( 'Phrase', 'Letters', 'Remote_addr', 'User_agent', 'Results')
+    except ConnectionError as err:
+        print('Is your database switched on? Error:', str(err))
     
     return render_template('viewlog.html',
                            the_title='View Log',

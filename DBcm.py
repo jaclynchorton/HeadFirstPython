@@ -1,6 +1,9 @@
 import mysql.connector
 
 
+class ConnectionError(Exception):
+    pass
+
 class UseDatabase:
     #The optional "None" annotation confirms that this method has no return value and the colon terminates the "def" line
     def __init__(self, config: dict) -> None: #Dunder "init" accepts a single dictionary, which we're calling "config
@@ -8,9 +11,13 @@ class UseDatabase:
         self.configuration = config #The value of the "config" argument is assigned to an attribute called "configuration"
 
     def __enter__(self) -> 'cursor': #This annotation tells users of this class what they can expect to be returned from this method
-        self.conn = mysql.connector.connect(**self.configuration)
-        self.cursor = self.conn.cursor()
-        return self.cursor
+        try:
+            self.conn = mysql.connector.connect(**self.configuration)
+            self.cursor = self.conn.cursor()
+            return self.cursor
+        except mysql.connector.errors.InterfaceError as err:
+            raise ConnectionError(err)
+        
 
     def __exit__(self, exc_type, exc_value, exc_trace) -> None: #This annotation confirms that this method has no return value; such annotations are optional but are good practice.
         self.conn.commit()
