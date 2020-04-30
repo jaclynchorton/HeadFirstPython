@@ -1,6 +1,10 @@
 from flask import Flask, render_template, request, escape
+from flask import copy_current_request_context
 from vsearch import search4letters # importing search4letters
 from DBcm import UseDatabase, ConnectionError, CredentialsError, SQLError
+from threading import Thread
+from time import sleep
+
 
 
 app = Flask(__name__)
@@ -31,12 +35,27 @@ def log_request(req: 'flask request', res: str) -> None:
 
 @app.route('/search4', methods=['POST']) # decorator
 def do_search() -> 'html':
+    @copy_current_request_context #decorator applied to log_request
+    def log_request(req: 'flask_request', res: str) -> None: #log_request nested inside the do_search function
+        sleep(15) #This makes log_request really slow...
+        with UseDatabase(app.config['dbconfig']) as cursor:
+            _SQL = """insert into log
+                    (phrase, letters, ip, browser_string, results)
+                    values
+                    (%s, %s, %s, %s, %s)"""
+            cursor.execute(_SQL, (req.form['phrase'], 
+                            req.form['letters'], 
+                            req.remote_addr,
+                            req.user_agent.browser,
+                            res, ))
+
     phrase = request.form['phrase']
     letters = request.form['letters']
     title = 'Here are your results: '
     results = str(search4letters(phrase, letters))
     try:
-        log_request(request, results)	# log request function call
+        t = Thread(target=log_request, args=(request, results))	# creating a new "Thread" object, which identifies the target function to execute as well as any function falues-log request function call
+        t.start() #calling "start", the function assicated with the "t" thread is scheduled for execution by the "threading" module
     except Exception as err:
         print('***** Logging failed with this error:', str(err))
     
